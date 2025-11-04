@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Player, BetType, GameEvent, AIPersonality } from './types';
 import { INITIAL_PLAYERS, STARTING_BALANCE, POT_STARTING_AMOUNT, BET_CONFIG, ROULETTE_NUMBERS } from './constants';
@@ -6,10 +7,15 @@ import BettingControls from './components/BettingControls';
 import GameLog from './components/GameLog';
 import GameOverModal from './components/GameOverModal';
 import RouletteWheel from './components/RouletteWheel';
+import RouletteTable from './components/RouletteTable';
+import TitleScreen from './components/TitleScreen';
+import PauseModal from './components/PauseModal';
+import { PauseIcon } from './components/icons/UIcons';
 
 const isRed = (num: number) => ROULETTE_NUMBERS.red.includes(num);
 
 const App: React.FC = () => {
+  const [gameState, setGameState] = useState<'title' | 'playing' | 'paused'>('title');
   const [players, setPlayers] = useState<Player[]>(INITIAL_PLAYERS);
   const [pot, setPot] = useState<number>(POT_STARTING_AMOUNT);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
@@ -17,11 +23,24 @@ const App: React.FC = () => {
   const [winner, setWinner] = useState<Player | null>(null);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [winningNumber, setWinningNumber] = useState<number | null>(null);
+  const [selectedBet, setSelectedBet] = useState<{ type: BetType; value: any }>({ type: BetType.SingleNumber, value: 0 });
   const eventIdCounter = useRef(0);
 
-  const addLog = (text: string) => {
+  const addLog = useCallback((text: string) => {
     setGameLog(prevLog => [...prevLog, { id: eventIdCounter.current++, text }]);
-  };
+  }, []);
+
+  const resetGame = useCallback(() => {
+    setPlayers(INITIAL_PLAYERS.map(p => ({...p, balance: STARTING_BALANCE})));
+    setPot(POT_STARTING_AMOUNT);
+    setCurrentPlayerIndex(0);
+    setGameLog([]);
+    setWinner(null);
+    setIsSpinning(false);
+    setWinningNumber(null);
+    eventIdCounter.current = 0;
+    setSelectedBet({ type: BetType.SingleNumber, value: 0 });
+  }, []);
 
   const advanceTurn = useCallback(() => {
     if (winner) return;
@@ -35,28 +54,41 @@ const App: React.FC = () => {
     });
   }, [players, winner]);
 
-  const processTurn = useCallback((player: Player, betType: BetType, amount: number) => {
+  const processTurn = useCallback((player: Player, bet: { type: BetType; value: any }, amount: number) => {
     setIsSpinning(true);
     setWinningNumber(null);
-    addLog(`${player.name} bets $${amount} on ${BET_CONFIG[betType].name}.`);
+
+    let betDescription = '';
+    switch (bet.type) {
+      case BetType.SingleNumber:
+        betDescription = `Single Number (${bet.value})`;
+        break;
+      case BetType.Dozen:
+        betDescription = `${bet.value} Dozen`;
+        break;
+      case BetType.RedBlack:
+        betDescription = `${(bet.value as string).toUpperCase()}`;
+        break;
+    }
+    addLog(`${player.name} bets $${amount} on ${betDescription}.`);
 
     setTimeout(() => {
       const resultNumber = Math.floor(Math.random() * 37);
       setWinningNumber(resultNumber);
 
       let isWin = false;
-      switch (betType) {
+      switch (bet.type) {
         case BetType.SingleNumber:
-          // Assume bet on #1 to match 1/37 odds
-          isWin = resultNumber === 1;
+          isWin = resultNumber === bet.value;
           break;
         case BetType.Dozen:
-          // Assume bet on first dozen (1-12) to match 12/37 odds
-          isWin = resultNumber >= 1 && resultNumber <= 12;
+          if (bet.value === '1st') isWin = resultNumber >= 1 && resultNumber <= 12;
+          else if (bet.value === '2nd') isWin = resultNumber >= 13 && resultNumber <= 24;
+          else if (bet.value === '3rd') isWin = resultNumber >= 25 && resultNumber <= 36;
           break;
         case BetType.RedBlack:
-          // Assume bet on Red to match 18/37 odds
-          isWin = isRed(resultNumber);
+          if (bet.value === 'red') isWin = isRed(resultNumber);
+          else if (bet.value === 'black') isWin = ROULETTE_NUMBERS.black.includes(resultNumber);
           break;
       }
       
@@ -93,74 +125,103 @@ const App: React.FC = () => {
       }
       setIsSpinning(false);
     }, 2500); // Increased duration for wheel animation
-  }, [players, pot, advanceTurn]);
+  }, [players, pot, advanceTurn, addLog]);
 
-  const determineAIBet = useCallback((player: Player): { betType: BetType; amount: number } => {
+  const determineAIBet = useCallback((player: Player): { bet: { type: BetType; value: any }; amount: number } => {
     let betType: BetType;
+    let betValue: any;
     const rand = Math.random();
 
-    if (player.balance <= BET_CONFIG[BetType.SingleNumber].maxBet) {
-        return { betType: BetType.SingleNumber, amount: Math.min(player.balance, Math.floor(Math.random() * 10) + 1) };
-    }
-
+    // AI personality determines the type of bet they prefer
     switch (player.personality) {
       case AIPersonality.RiskLover:
+        // 90% chance for high-risk single number, 10% for medium-risk dozen
         betType = rand < 0.9 ? BetType.SingleNumber : BetType.Dozen;
         break;
       case AIPersonality.AccidentProne:
+        // 80% chance for "safer" red/black (higher chance to win pot), 20% for dozen
         betType = rand < 0.8 ? BetType.RedBlack : BetType.Dozen;
         break;
       case AIPersonality.Balanced:
       default:
+        // Balanced distribution of risk
         if (rand < 0.2) betType = BetType.SingleNumber;
         else if (rand < 0.7) betType = BetType.Dozen;
         else betType = BetType.RedBlack;
         break;
     }
+    
+    // Determine the specific value for the chosen bet type
+    switch (betType) {
+      case BetType.SingleNumber:
+        betValue = Math.floor(Math.random() * 37);
+        break;
+      case BetType.Dozen:
+        const dozens = ['1st', '2nd', '3rd'];
+        betValue = dozens[Math.floor(Math.random() * 3)];
+        break;
+      case BetType.RedBlack:
+        betValue = Math.random() < 0.5 ? 'red' : 'black';
+        break;
+    }
 
-    const minBetPercent = player.personality === AIPersonality.AccidentProne ? 0.05 : 0.15;
-    const maxBetPercent = player.personality === AIPersonality.RiskLover ? 0.3 : 0.2;
-    const betPercent = Math.random() * (maxBetPercent - minBetPercent) + minBetPercent;
-    const amount = Math.max(1, Math.floor(player.balance * betPercent));
-
+    // AI now bets the maximum possible amount for the chosen bet type, capped by their balance.
+    // This aligns the AI's betting strategy with the player's.
     const maxBetForType = BET_CONFIG[betType].maxBet;
-    return { betType, amount: Math.min(amount, player.balance, maxBetForType) };
+    const amount = Math.min(player.balance, maxBetForType);
+
+    return { bet: { type: betType, value: betValue }, amount };
   }, []);
 
   useEffect(() => {
     const currentPlayer = players[currentPlayerIndex];
-    if (currentPlayer?.isAI && !isSpinning && !winner) {
-      const { betType, amount } = determineAIBet(currentPlayer);
+    if (gameState === 'playing' && currentPlayer?.isAI && !isSpinning && !winner) {
+      const { bet, amount } = determineAIBet(currentPlayer);
       setTimeout(() => {
-        processTurn(currentPlayer, betType, amount);
+        processTurn(currentPlayer, bet, amount);
       }, 1000);
     }
-  }, [currentPlayerIndex, players, isSpinning, winner, processTurn, determineAIBet]);
+  }, [currentPlayerIndex, players, isSpinning, winner, processTurn, determineAIBet, gameState]);
   
+  const handleStartGame = () => {
+    setGameState('playing');
+    addLog("Welcome to Reverse Roulette! The first to $0 wins.");
+  };
+
   const handleRestart = () => {
-    setPlayers(INITIAL_PLAYERS.map(p => ({...p, balance: STARTING_BALANCE})));
-    setPot(POT_STARTING_AMOUNT);
-    setCurrentPlayerIndex(0);
-    setGameLog([]);
-    setWinner(null);
-    setIsSpinning(false);
-    setWinningNumber(null);
-    eventIdCounter.current = 0;
+    resetGame();
     addLog("New game started. Objective: Lose all your money!");
   };
 
-  useEffect(() => {
-    addLog("Welcome to Reverse Roulette! The first to $0 wins.");
-  }, []);
+  const handleQuitToMenu = () => {
+    resetGame();
+    setGameState('title');
+  };
+
+  const handlePause = () => setGameState('paused');
+  const handleResume = () => setGameState('playing');
 
   const currentPlayer = players[currentPlayerIndex];
-  const isPlayerTurn = !currentPlayer?.isAI && !isSpinning && !winner;
+  const isPlayerTurn = gameState === 'playing' && !currentPlayer?.isAI && !isSpinning && !winner;
+  
+  if (gameState === 'title') {
+    return <TitleScreen onStartGame={handleStartGame} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-4 sm:p-6 lg:p-8">
-      {winner && <GameOverModal winner={winner} onRestart={handleRestart} />}
+      {winner && <GameOverModal winner={winner} onRestart={handleRestart} onBackToMenu={handleQuitToMenu} />}
+      {gameState === 'paused' && <PauseModal onResume={handleResume} onQuit={handleQuitToMenu} />}
+
       <div className="max-w-7xl mx-auto">
-        <header className="text-center mb-8">
+        <header className="relative text-center mb-8">
+          <button 
+            onClick={handlePause}
+            className="absolute top-0 right-0 text-slate-400 hover:text-white transition-colors z-30"
+            aria-label="Pause game"
+          >
+            <PauseIcon className="h-8 w-8" />
+          </button>
           <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
             Reverse Roulette
           </h1>
@@ -175,20 +236,26 @@ const App: React.FC = () => {
             ))}
           </aside>
 
-          <div className="lg:col-span-2 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              <RouletteWheel
-                potAmount={pot}
-                isSpinning={isSpinning}
-                winningNumber={winningNumber}
-              />
-              <GameLog events={gameLog} />
-            </div>
-            
+          <div className="lg:col-span-1 flex flex-col items-center gap-8">
+            <RouletteWheel
+              potAmount={pot}
+              isSpinning={isSpinning}
+              winningNumber={winningNumber}
+            />
+            <RouletteTable
+              selectedBet={selectedBet}
+              onBetSelectionChange={setSelectedBet}
+              disabled={!isPlayerTurn}
+            />
+          </div>
+          
+          <div className="lg:col-span-1 space-y-8">
+            <GameLog events={gameLog} />
             <BettingControls
               playerBalance={players[0].balance}
-              onBet={(betType, amount) => processTurn(players[0], betType, amount)}
+              onBet={(amount) => processTurn(players[0], selectedBet, amount)}
               disabled={!isPlayerTurn}
+              selectedBet={selectedBet}
             />
           </div>
         </main>
