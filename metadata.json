@@ -1,0 +1,5 @@
+{
+  "name": "Reverse Roulette",
+  "description": "A comedic casino game where the objective is to lose all your money first. Avoid winning spins, as taking the growing pot will set you back on your goal to reach zero.",
+  "requestFramePermissions": []
+}
