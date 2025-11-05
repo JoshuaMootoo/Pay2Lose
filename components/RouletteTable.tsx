@@ -17,7 +17,7 @@ const getNumberColorClass = (num: number) => {
 
 const RouletteTable: React.FC<RouletteTableProps> = ({ selectedBet, onBetSelectionChange, disabled }) => {
     
-    const baseButtonClasses = `transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-2 text-xs sm:text-sm font-bold rounded-md flex items-center justify-center h-10`;
+    const baseButtonClasses = `transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-2 text-[9px] sm:text-xs font-bold rounded-md flex items-center justify-center h-6 sm:h-9`;
     const hoverClasses = !disabled ? 'hover:ring-2 hover:ring-offset-2 hover:ring-offset-slate-800 hover:ring-amber-300/70' : '';
 
     const isSelected = (type: BetType, value: any) => selectedBet.type === type && selectedBet.value === value;
@@ -33,7 +33,7 @@ const RouletteTable: React.FC<RouletteTableProps> = ({ selectedBet, onBetSelecti
                 key={num}
                 onClick={() => onBetSelectionChange({ type: BetType.SingleNumber, value: num })}
                 disabled={disabled}
-                className={`${baseButtonClasses} ${hoverClasses} ${getNumberColorClass(num)} ${isSelected(BetType.SingleNumber, num) ? 'ring-4 ring-amber-300' : 'border-slate-700'}`}
+                className={`${baseButtonClasses} ${hoverClasses} ${getNumberColorClass(num)} ${isSelected(BetType.SingleNumber, num) ? 'ring-2 md:ring-4 ring-amber-300' : 'border-slate-700'}`}
                 aria-label={`Bet on number ${num}`}
             >
                 {num}
@@ -42,15 +42,15 @@ const RouletteTable: React.FC<RouletteTableProps> = ({ selectedBet, onBetSelecti
     };
 
     return (
-        <div className="bg-slate-800 p-4 rounded-lg shadow-lg w-full max-w-xl mx-auto text-center font-sans">
-            <h3 className="text-lg font-semibold text-slate-300 mb-3">Choose Bet Type</h3>
+        <div className="bg-slate-800 p-1 rounded-lg shadow-lg flex-grow min-w-0 text-center font-sans">
+            <h3 className="text-sm lg:text-lg font-semibold text-slate-300 mb-2">Choose Bet Type</h3>
             
-            <div className="grid grid-cols-[60px_1fr] gap-2">
+            <div className="grid grid-cols-[24px_1fr] sm:grid-cols-[50px_1fr] gap-1">
                 {/* Zero */}
                 <button
                     onClick={() => onBetSelectionChange({ type: BetType.SingleNumber, value: 0 })}
                     disabled={disabled}
-                    className={`h-full ${baseButtonClasses} ${hoverClasses} ${getNumberColorClass(0)} ${isSelected(BetType.SingleNumber, 0) ? 'ring-4 ring-amber-300' : 'border-slate-700'}`}
+                    className={`h-full ${baseButtonClasses} ${hoverClasses} ${getNumberColorClass(0)} ${isSelected(BetType.SingleNumber, 0) ? 'ring-2 md:ring-4 ring-amber-300' : 'border-slate-700'}`}
                     aria-label="Bet on 0"
                 >
                     0
@@ -65,21 +65,21 @@ const RouletteTable: React.FC<RouletteTableProps> = ({ selectedBet, onBetSelecti
             </div>
 
             {/* Dozens */}
-            <div className="grid grid-cols-[60px_1fr] gap-2 mt-2">
+            <div className="grid grid-cols-[24px_1fr] sm:grid-cols-[50px_1fr] gap-1 mt-1">
                 <div></div> {/* Spacer */}
                 <div className="grid grid-cols-3 gap-1">
-                    <button onClick={() => onBetSelectionChange({type: BetType.Dozen, value: '1st'})} disabled={disabled} className={`py-2 px-1 ${baseButtonClasses} ${hoverClasses} border-slate-600 bg-slate-700 ${isSelected(BetType.Dozen, '1st') ? 'ring-4 ring-amber-300' : ''}`}>1st 12</button>
-                    <button onClick={() => onBetSelectionChange({type: BetType.Dozen, value: '2nd'})} disabled={disabled} className={`py-2 px-1 ${baseButtonClasses} ${hoverClasses} border-slate-600 bg-slate-700 ${isSelected(BetType.Dozen, '2nd') ? 'ring-4 ring-amber-300' : ''}`}>2nd 12</button>
-                    <button onClick={() => onBetSelectionChange({type: BetType.Dozen, value: '3rd'})} disabled={disabled} className={`py-2 px-1 ${baseButtonClasses} ${hoverClasses} border-slate-600 bg-slate-700 ${isSelected(BetType.Dozen, '3rd') ? 'ring-4 ring-amber-300' : ''}`}>3rd 12</button>
+                    <button onClick={() => onBetSelectionChange({type: BetType.Dozen, value: '1st'})} disabled={disabled} className={`py-1 px-1 ${baseButtonClasses} ${hoverClasses} border-slate-600 bg-slate-700 ${isSelected(BetType.Dozen, '1st') ? 'ring-2 md:ring-4 ring-amber-300' : ''}`}>1st 12</button>
+                    <button onClick={() => onBetSelectionChange({type: BetType.Dozen, value: '2nd'})} disabled={disabled} className={`py-1 px-1 ${baseButtonClasses} ${hoverClasses} border-slate-600 bg-slate-700 ${isSelected(BetType.Dozen, '2nd') ? 'ring-2 md:ring-4 ring-amber-300' : ''}`}>2nd 12</button>
+                    <button onClick={() => onBetSelectionChange({type: BetType.Dozen, value: '3rd'})} disabled={disabled} className={`py-1 px-1 ${baseButtonClasses} ${hoverClasses} border-slate-600 bg-slate-700 ${isSelected(BetType.Dozen, '3rd') ? 'ring-2 md:ring-4 ring-amber-300' : ''}`}>3rd 12</button>
                 </div>
             </div>
             
             {/* Colors */}
-            <div className="grid grid-cols-[60px_1fr] gap-2 mt-1">
+            <div className="grid grid-cols-[24px_1fr] sm:grid-cols-[50px_1fr] gap-1 mt-1">
                 <div></div> {/* Spacer */}
                 <div className="grid grid-cols-2 gap-1">
-                    <button onClick={() => onBetSelectionChange({type: BetType.RedBlack, value: 'red'})} disabled={disabled} className={`py-2 px-1 ${baseButtonClasses} ${hoverClasses} bg-red-700 text-white border-slate-600 ${isSelected(BetType.RedBlack, 'red') ? 'ring-4 ring-amber-300' : ''}`}>RED</button>
-                    <button onClick={() => onBetSelectionChange({type: BetType.RedBlack, value: 'black'})} disabled={disabled} className={`py-2 px-1 ${baseButtonClasses} ${hoverClasses} bg-slate-900 text-white border-slate-600 ${isSelected(BetType.RedBlack, 'black') ? 'ring-4 ring-amber-300' : ''}`}>BLACK</button>
+                    <button onClick={() => onBetSelectionChange({type: BetType.RedBlack, value: 'red'})} disabled={disabled} className={`py-1 px-1 ${baseButtonClasses} ${hoverClasses} bg-red-700 text-white border-slate-600 ${isSelected(BetType.RedBlack, 'red') ? 'ring-2 md:ring-4 ring-amber-300' : ''}`}>RED</button>
+                    <button onClick={() => onBetSelectionChange({type: BetType.RedBlack, value: 'black'})} disabled={disabled} className={`py-1 px-1 ${baseButtonClasses} ${hoverClasses} bg-slate-900 text-white border-slate-600 ${isSelected(BetType.RedBlack, 'black') ? 'ring-2 md:ring-4 ring-amber-300' : ''}`}>BLACK</button>
                 </div>
             </div>
         </div>

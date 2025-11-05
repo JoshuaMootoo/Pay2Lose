@@ -16,11 +16,11 @@ const GameLog: React.FC<GameLogProps> = ({ events }) => {
   }, [events]);
 
   return (
-    <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
-      <h2 className="text-xl font-semibold text-slate-300 mb-4 border-b border-slate-700 pb-2">Game Log</h2>
-      <div ref={logContainerRef} className="h-48 overflow-y-auto space-y-2 pr-2">
+    <div className="bg-slate-800 p-2 lg:p-6 rounded-lg shadow-lg flex flex-col flex-grow min-h-0">
+      <h2 className="text-lg lg:text-xl font-semibold text-slate-300 mb-2 lg:mb-4 border-b border-slate-700 pb-2 shrink-0">Game Log</h2>
+      <div ref={logContainerRef} className="flex-grow overflow-y-auto space-y-2 pr-2">
         {events.map((event) => (
-          <p key={event.id} className="text-sm text-slate-300 animate-fade-in">
+          <p key={event.id} className="text-xs lg:text-sm text-slate-300 animate-fade-in">
             {event.text.startsWith('✅') && <span className="text-green-400 mr-2">✅</span>}
             {event.text.startsWith('💥') && <span className="text-red-400 mr-2">💥</span>}
             {event.text.startsWith('🎉') && <span className="text-amber-300 mr-2">🎉</span>}

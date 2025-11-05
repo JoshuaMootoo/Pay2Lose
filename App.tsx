@@ -209,57 +209,57 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-4 sm:p-6 lg:p-8">
+    <div className="h-screen max-h-screen bg-slate-900 text-slate-100 font-sans p-2 flex flex-col overflow-hidden">
       {winner && <GameOverModal winner={winner} onRestart={handleRestart} onBackToMenu={handleQuitToMenu} />}
       {gameState === 'paused' && <PauseModal onResume={handleResume} onQuit={handleQuitToMenu} />}
 
-      <div className="max-w-7xl mx-auto">
-        <header className="relative text-center mb-8">
-          <button 
-            onClick={handlePause}
-            className="absolute top-0 right-0 text-slate-400 hover:text-white transition-colors z-30"
-            aria-label="Pause game"
-          >
-            <PauseIcon className="h-8 w-8" />
-          </button>
-          <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
-            Reverse Roulette
-          </h1>
-          <p className="text-slate-400 mt-2 text-lg">The goal is to go broke. Don't win!</p>
-        </header>
+      <header className="relative text-center mb-1 lg:mb-2 shrink-0">
+        <button 
+          onClick={handlePause}
+          className="absolute top-0 right-0 text-slate-400 hover:text-white transition-colors z-30"
+          aria-label="Pause game"
+        >
+          <PauseIcon className="h-6 w-6" />
+        </button>
+        <h1 className="text-2xl lg:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
+          Reverse Roulette
+        </h1>
+        <p className="text-slate-400 mt-0 lg:mt-1 text-xs lg:text-sm">The goal is to go broke. Don't win!</p>
+      </header>
 
-        <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <aside className="lg:col-span-1 space-y-4">
-            <h2 className="text-2xl font-semibold text-slate-300 border-b-2 border-slate-700 pb-2">Players</h2>
+      <main className="flex-grow flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2 min-h-0">
+        <aside className="md:col-span-2 lg:col-span-1 space-y-2 flex flex-col">
+          <h2 className="text-lg font-semibold text-slate-300 border-b-2 border-slate-700 pb-1 shrink-0">Players</h2>
+          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto py-1">
             {players.map((player, index) => (
               <PlayerCard key={player.id} player={player} isCurrent={index === currentPlayerIndex && !winner} />
             ))}
-          </aside>
+          </div>
+        </aside>
 
-          <div className="lg:col-span-1 flex flex-col items-center gap-8">
-            <RouletteWheel
-              potAmount={pot}
-              isSpinning={isSpinning}
-              winningNumber={winningNumber}
-            />
-            <RouletteTable
-              selectedBet={selectedBet}
-              onBetSelectionChange={setSelectedBet}
-              disabled={!isPlayerTurn}
-            />
-          </div>
-          
-          <div className="lg:col-span-1 space-y-8">
-            <GameLog events={gameLog} />
-            <BettingControls
-              playerBalance={players[0].balance}
-              onBet={(amount) => processTurn(players[0], selectedBet, amount)}
-              disabled={!isPlayerTurn}
-              selectedBet={selectedBet}
-            />
-          </div>
-        </main>
-      </div>
+        <div className="flex flex-row items-center justify-start gap-2">
+          <RouletteWheel
+            potAmount={pot}
+            isSpinning={isSpinning}
+            winningNumber={winningNumber}
+          />
+          <RouletteTable
+            selectedBet={selectedBet}
+            onBetSelectionChange={setSelectedBet}
+            disabled={!isPlayerTurn}
+          />
+        </div>
+        
+        <div className="flex flex-col space-y-2 min-h-0 flex-grow">
+          <GameLog events={gameLog} />
+          <BettingControls
+            playerBalance={players[0].balance}
+            onBet={(amount) => processTurn(players[0], selectedBet, amount)}
+            disabled={!isPlayerTurn}
+            selectedBet={selectedBet}
+          />
+        </div>
+      </main>
     </div>
   );
 };
