@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BetType } from '../types';
 import { BET_CONFIG } from '../constants';
@@ -12,11 +11,9 @@ interface BettingControlsProps {
 
 const BettingControls: React.FC<BettingControlsProps> = ({ playerBalance, onBet, disabled, selectedBet }) => {
   const maxBetForType = BET_CONFIG[selectedBet.type].maxBet;
-  // Calculate the actual bet amount: minimum of balance and the bet type's max.
   const betAmount = Math.min(playerBalance, maxBetForType);
 
   const handleBet = () => {
-    // Ensure the bet is valid before processing.
     if (betAmount > 0 && betAmount <= playerBalance) {
       onBet(betAmount);
     }
