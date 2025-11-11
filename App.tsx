@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Player, BetType, GameEvent, AIPersonality, OnlineGameState, GameAction } from './types';
 import { INITIAL_PLAYERS, STARTING_BALANCE, POT_STARTING_AMOUNT, BET_CONFIG, ROULETTE_NUMBERS } from './constants';
 import PlayerCard from './components/PlayerCard';
-import BettingControls from './components/BettingControls';
 import GameLog from './components/GameLog';
 import GameOverModal from './components/GameOverModal';
 import RouletteWheel from './components/RouletteWheel';
@@ -26,6 +25,8 @@ const App: React.FC = () => {
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [winningNumber, setWinningNumber] = useState<number | null>(null);
   const [selectedBet, setSelectedBet] = useState<{ type: BetType; value: any }>({ type: BetType.SingleNumber, value: 0 });
+  const [isLogExpanded, setIsLogExpanded] = useState(false);
+
 
   // Online state
   const [onlineState, setOnlineState] = useState<OnlineGameState | null>(null);
@@ -168,9 +169,14 @@ const App: React.FC = () => {
     const currentPlayer = localGameState.players[currentPlayerIndex];
     if (gameState === 'playing' && currentPlayer?.isAI && !isSpinning && !winner) {
       const { bet, amount } = determineAIBet(currentPlayer);
-      setTimeout(() => handleLocalBet(amount), 1000);
+      setTimeout(() => {
+        // AI needs to select the bet before placing it
+        setSelectedBet(bet);
+        handleLocalBet(amount);
+      }, 1000);
     }
   }, [currentPlayerIndex, localGameState.players, isSpinning, winner, determineAIBet, gameState, handleLocalBet, isOnlineGame]);
+
 
   const handleQuitToMenu = useCallback(() => {
     if(pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
@@ -245,6 +251,7 @@ const App: React.FC = () => {
                       pot: newPot,
                       gameLog: newLog,
                       status: newWinner ? 'finished' : 'playing',
+                      winningNumber: winningNumber, // Make sure to sync winning number
                       currentPlayerIndex: nextPlayerIndex,
                       guestActions: [],
                       version: tempState.version + 1,
@@ -280,7 +287,7 @@ const App: React.FC = () => {
         handleQuitToMenu();
       }
     }
-  }, [gameId, isHost, processTurn, updateOnlineState, advanceTurn, handleQuitToMenu]);
+  }, [gameId, isHost, processTurn, updateOnlineState, advanceTurn, handleQuitToMenu, winningNumber]);
 
 
   useEffect(() => {
@@ -507,45 +514,86 @@ const App: React.FC = () => {
   const canBet = gameState === 'playing' && isMyTurn && !isSpinning && !winner;
 
   return (
-    <div className="h-screen max-h-screen bg-slate-900 text-slate-100 font-sans p-2 flex flex-col overflow-hidden">
+    <div className="h-screen max-h-screen bg-slate-900 text-slate-100 font-sans flex flex-col overflow-hidden p-2 md:p-4">
       {winner && <GameOverModal winner={winner} onRestart={handleRestart} onBackToMenu={handleQuitToMenu} isOnline={isOnlineGame} isHost={isHost} />}
       {gameState === 'paused' && <PauseModal onResume={handleResume} onQuit={handleQuitToMenu} />}
 
-      <header className="relative text-center mb-1 lg:mb-2 shrink-0">
-        <button onClick={handlePause} className="absolute top-0 right-0 text-slate-400 hover:text-white transition-colors z-30" aria-label="Pause game">
+      <header className="relative text-center shrink-0 p-1">
+        <button onClick={handlePause} className="absolute top-2 right-2 text-slate-400 hover:text-white transition-colors z-30" aria-label="Pause game">
           <PauseIcon className="h-6 w-6" />
         </button>
-        <h1 className="text-2xl lg:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
+        <h1 className="text-2xl lg:text-3xl font-bold text-emerald-400">
           Reverse Roulette
         </h1>
-        <p className="text-slate-400 mt-0 lg:mt-1 text-xs lg:text-sm">The goal is to go broke. Don't win!</p>
+        <p className="text-slate-400 text-xs lg:text-sm">The goal is to go broke. Don't win!</p>
       </header>
-
-      <main className="flex-grow flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2 min-h-0">
-        <aside className="md:col-span-2 lg:col-span-1 space-y-2 flex flex-col">
-          <h2 className="text-lg font-semibold text-slate-300 border-b-2 border-slate-700 pb-1 shrink-0">Players</h2>
-          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto py-1">
-            {players.map((player, index) => (
-              <PlayerCard key={player.id} player={player} isCurrent={index === currentPlayerIndex && !winner} />
-            ))}
+      
+      <div className="flex-grow min-h-0 relative">
+        {/* --- Mobile Layout (<768px) --- */}
+        <main className="absolute inset-0 flex flex-col gap-2 md:hidden">
+          {/* Players */}
+          <div className="shrink-0 p-1">
+             <h2 className="sr-only">Players</h2>
+             <div className="flex flex-row gap-2 overflow-x-auto">
+              {players.map((player, index) => (
+                <PlayerCard key={player.id} player={player} isCurrent={index === currentPlayerIndex && !winner} />
+              ))}
+            </div>
           </div>
-        </aside>
 
-        <div className="flex flex-row items-center justify-start gap-2">
-          <RouletteWheel potAmount={pot} isSpinning={isSpinning} winningNumber={isOnlineGame && onlineState ? onlineState.winningNumber : winningNumber} />
-          <RouletteTable selectedBet={selectedBet} onBetSelectionChange={setSelectedBet} disabled={!canBet} />
-        </div>
-        
-        <div className="flex flex-col space-y-2 min-h-0 flex-grow">
-          <GameLog events={currentLog} />
-          <BettingControls
-            playerBalance={currentPlayer?.balance || 0}
-            onBet={isOnlineGame ? handleOnlineBet : handleLocalBet}
-            disabled={!canBet}
-            selectedBet={selectedBet}
-          />
-        </div>
-      </main>
+          <div className="flex-grow grid grid-cols-1 grid-rows-[1fr_auto] gap-2 min-h-0 mobile-landscape-grid-fix">
+            <div className="grid grid-cols-2 gap-2">
+                <RouletteWheel potAmount={pot} isSpinning={isSpinning} winningNumber={winningNumber} />
+                <RouletteTable
+                    isPanelVersion={false}
+                    showBettingControls={true}
+                    selectedBet={selectedBet}
+                    onBetSelectionChange={setSelectedBet}
+                    disabled={!canBet}
+                    playerBalance={currentPlayer?.balance || 0}
+                    onBet={isOnlineGame ? handleOnlineBet : handleLocalBet}
+                />
+            </div>
+             <GameLog events={currentLog} isExpanded={isLogExpanded} onToggleExpand={() => setIsLogExpanded(p => !p)} className="min-h-0"/>
+          </div>
+        </main>
+
+        {/* --- Desktop / Large Tablet Layout (>=768px) --- */}
+        <main className="hidden md:grid grid-rows-[auto_1fr_auto] absolute inset-0 gap-4">
+          {/* Players */}
+          <div className="bg-slate-800 rounded-lg p-2 flex flex-row items-center gap-4 border border-slate-700">
+            <h2 className="text-lg font-semibold text-slate-300 border-r-2 border-slate-700 pr-4 shrink-0">Players</h2>
+              <div className="flex flex-row gap-4 overflow-x-auto">
+                {players.map((player, index) => (
+                  <PlayerCard key={player.id} player={player} isCurrent={index === currentPlayerIndex && !winner} />
+                ))}
+              </div>
+          </div>
+          
+          {/* Middle content */}
+          <div className="grid grid-cols-5 gap-4 min-h-0">
+            {/* Roulette Wheel */}
+            <div className="col-span-2 p-4 bg-slate-800/50 rounded-lg">
+                <RouletteWheel potAmount={pot} isSpinning={isSpinning} winningNumber={winningNumber} />
+            </div>
+            
+            {/* Combined Betting Panel */}
+            <RouletteTable
+              className="col-span-3"
+              isPanelVersion={true}
+              showBettingControls={true}
+              selectedBet={selectedBet}
+              onBetSelectionChange={setSelectedBet}
+              disabled={!canBet}
+              playerBalance={currentPlayer?.balance || 0}
+              onBet={isOnlineGame ? handleOnlineBet : handleLocalBet}
+            />
+          </div>
+
+          {/* Game Log */}
+           <GameLog events={currentLog} isExpanded={isLogExpanded} onToggleExpand={() => setIsLogExpanded(p => !p)} className="col-span-full min-h-0"/>
+        </main>
+      </div>
     </div>
   );
 };
